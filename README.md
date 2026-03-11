@@ -1,0 +1,104 @@
+# opsro
+
+`opsro` is a read-only operations CLI for AI agents and humans.
+
+V1 is intentionally narrow:
+
+- read-only Kubernetes inspection
+- production-safe defaults via Kubernetes RBAC
+- a future host read-only broker design using SSH `ForceCommand`
+- easy integration with Codex and Claude Code
+
+It is not a full agent platform. It is the narrow waist between an agent and production systems.
+
+## Goals
+
+- Default to read-only investigation
+- Reuse existing Kubernetes RBAC instead of inventing a new permission model
+- Keep the agent interface simple: one CLI, predictable output
+- Leave write actions and approvals for V2
+
+## V1 Scope
+
+- `opsro k8s get`
+- `opsro k8s describe`
+- `opsro k8s logs`
+- `opsro k8s events`
+- `opsro k8s top`
+- sample read-only RBAC manifest
+- host read-only broker blueprint
+
+## Non-Goals
+
+- direct write operations
+- approval workflows
+- MCP server
+- host mutation commands
+- cloud API mutation
+
+## Why not just use kubectl?
+
+You can, and `opsro` does shell out to `kubectl` in V1.
+
+The point of `opsro` is to give agents a smaller, safer command surface:
+
+- a fixed read-only command set
+- stable usage patterns for prompts/skills
+- a path to add host/log integrations later without changing the agent contract
+
+## Quick Start
+
+### 1. Build
+
+```bash
+go build -o bin/opsro ./cmd/opsro
+```
+
+### 2. Prepare a read-only kubeconfig
+
+Use the sample RBAC in `examples/rbac/readonly-clusterrole.yaml` and generate a kubeconfig that maps to that read-only identity.
+
+### 3. Run read-only queries
+
+```bash
+./bin/opsro k8s --context prod get pods -A
+./bin/opsro k8s --context prod describe deployment api -n prod
+./bin/opsro k8s --context prod logs deployment/api -n prod --since=10m
+./bin/opsro k8s --context prod events -n prod
+./bin/opsro k8s --context prod top pods -n prod
+```
+
+## Recommended Agent Usage
+
+Tell the agent:
+
+- use `opsro` for all production inspection
+- do not call `kubectl` directly
+- do not use any write-capable kubeconfig
+
+For humans, `k9s --readonly` is a good complement. For agents, `opsro` is a better fit because it returns plain command output instead of an interactive TUI.
+
+## Project Layout
+
+```text
+cmd/opsro/                 CLI entrypoint
+examples/rbac/             sample Kubernetes read-only RBAC
+brokers/host-readonly/     host-side design notes and ForceCommand example
+docs/                      architecture and security notes
+```
+
+## Roadmap
+
+### V1
+
+- read-only K8s CLI
+- sample RBAC
+- host broker design
+
+### V2
+
+- host read-only broker implementation
+- log source adapters
+- write request / approval flow
+- optional MCP wrapper
+```
