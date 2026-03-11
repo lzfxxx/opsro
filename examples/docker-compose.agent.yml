@@ -1,0 +1,38 @@
+services:
+  codex:
+    build:
+      context: ..
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_PACKAGE: "@openai/codex"
+        AGENT_BIN: "codex"
+    image: opsro-codex:dev
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    environment:
+      KUBECONFIG: /config/kubeconfig
+      OPSRO_CONFIG: /config/opsro.json
+    volumes:
+      - ../examples/config.json:/config/opsro.json:ro
+      - ./kubeconfig:/config/kubeconfig:ro
+      - ./workspace:/workspace
+
+  claude:
+    build:
+      context: ..
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_PACKAGE: "@anthropic-ai/claude-code"
+        AGENT_BIN: "claude"
+    image: opsro-claude:dev
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    environment:
+      KUBECONFIG: /config/kubeconfig
+      OPSRO_CONFIG: /config/opsro.json
+    volumes:
+      - ../examples/config.json:/config/opsro.json:ro
+      - ./kubeconfig:/config/kubeconfig:ro
+      - ./workspace:/workspace

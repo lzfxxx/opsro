@@ -1,12 +1,11 @@
 # Agent Runtime Notes
 
-The repository Dockerfile intentionally keeps the runtime narrow:
+The repository includes two runtime layers:
 
-- `opsro`
-- `kubectl`
-- CA certificates
+- `Dockerfile`: a narrow `opsro` runtime with `kubectl`
+- `Dockerfile.agent`: an agent runtime for Codex or Claude Code on top of `opsro`
 
-This is a good starting point for a read-only agent container.
+This keeps the plain CLI image simple while still supporting agent-specific containers.
 
 ## Recommended Runtime Rules
 

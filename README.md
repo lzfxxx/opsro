@@ -93,12 +93,14 @@ For humans, `k9s --readonly` is a good complement. For agents, `opsro` is a bett
 
 ## Container Runtime
 
-A minimal `Dockerfile` is included for a read-only runtime that contains:
+Two container paths are included:
 
-- `opsro`
-- `kubectl`
+- `Dockerfile`: a minimal read-only runtime with `opsro` and `kubectl`
+- `Dockerfile.agent`: an agent runtime for Codex or Claude Code with `opsro` as the intended operations interface
 
-It is intentionally agent-agnostic so Codex or Claude Code can be layered on top later.
+In the agent image, `kubectl` and `ssh` are hidden behind `opsro` by default wrappers, while the real binaries live under `/opt/opsro/bin`.
+
+The compose example mounts both a read-only kubeconfig and an `opsro` host inventory file via `OPSRO_CONFIG`.
 
 ## Project Layout
 
@@ -107,7 +109,8 @@ cmd/opsro/                 CLI entrypoint
 examples/rbac/             sample Kubernetes read-only RBAC
 examples/config.json       sample host inventory config
 brokers/host-readonly/     host-side broker script and ForceCommand notes
-docs/                      architecture, security, and quickstart notes
+docs/                      architecture, security, quickstart, and container notes
+docker/                    entrypoint and direct-command blockers for agent images
 ```
 
 ## Roadmap
@@ -122,7 +125,7 @@ docs/                      architecture, security, and quickstart notes
 
 ### V2
 
-- host read-only broker implementation
+- stronger agent runtime isolation
 - log source adapters
 - write request / approval flow
 - optional MCP wrapper

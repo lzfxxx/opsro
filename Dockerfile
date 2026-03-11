@@ -11,11 +11,14 @@ ARG KUBECTL_VERSION=v1.34.1
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
-RUN case "${TARGETARCH}" in \
-      amd64) ARCH=amd64 ;; \
-      arm64) ARCH=arm64 ;; \
-      *) echo "unsupported TARGETARCH: ${TARGETARCH}" && exit 1 ;; \
-    esac \
+RUN ARCH="${TARGETARCH}" \
+    && if [ -z "$ARCH" ]; then \
+         case "$(uname -m)" in \
+           x86_64) ARCH=amd64 ;; \
+           aarch64|arm64) ARCH=arm64 ;; \
+           *) echo "unsupported architecture: $(uname -m)" && exit 1 ;; \
+         esac; \
+       fi \
     && curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" \
     && chmod +x /usr/local/bin/kubectl
 COPY --from=build /out/opsro /usr/local/bin/opsro
