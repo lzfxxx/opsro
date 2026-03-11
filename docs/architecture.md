@@ -35,9 +35,9 @@ The real security boundary for Kubernetes is RBAC, not the CLI.
 
 ## Future Extensions
 
-Host inspection will use a separate read-only broker and should not reuse the Kubernetes trust model.
+Host inspection uses a separate read-only broker and does not reuse the Kubernetes trust model.
 
-That future shape looks like this:
+That shape looks like this:
 
 ```text
 Codex / Claude Code

@@ -12,12 +12,11 @@ For V1, Kubernetes safety comes from:
 
 ## What V1 Does Not Try To Solve
 
-- host command authorization
 - approval workflows
 - per-action write controls
 - cloud mutation guardrails
 
-Those belong in later phases.
+Host command authorization is implemented only for read-only access through the host broker allowlist. Write-capable host controls belong in later phases.
 
 ## Agent Runtime Guidance
 

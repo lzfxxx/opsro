@@ -6,7 +6,7 @@ V1 is intentionally narrow:
 
 - read-only Kubernetes inspection
 - production-safe defaults via Kubernetes RBAC
-- a future host read-only broker design using SSH `ForceCommand`
+- read-only host inspection through SSH `ForceCommand`
 - easy integration with Codex and Claude Code
 
 It is not a full agent platform. It is the narrow waist between an agent and production systems.
@@ -25,8 +25,11 @@ It is not a full agent platform. It is the narrow waist between an agent and pro
 - `opsro k8s logs`
 - `opsro k8s events`
 - `opsro k8s top`
+- `opsro host status`
+- `opsro host logs`
+- `opsro host run`
 - sample read-only RBAC manifest
-- host read-only broker blueprint
+- sample host read-only broker
 
 ## Non-Goals
 
@@ -68,6 +71,16 @@ Use the sample RBAC in `examples/rbac/readonly-clusterrole.yaml` and generate a 
 ./bin/opsro k8s --context prod top pods -n prod
 ```
 
+### 4. Optional host inspection
+
+Create `opsro.json` from `examples/config.json`, install `brokers/host-readonly/readonly-broker.sh` on the target host, and use:
+
+```bash
+./bin/opsro host status web-01
+./bin/opsro host logs web-01 nginx --since=10m --tail=200
+./bin/opsro host run web-01 -- journalctl -u nginx --since=10m --no-pager
+```
+
 ## Recommended Agent Usage
 
 Tell the agent:
@@ -92,8 +105,9 @@ It is intentionally agent-agnostic so Codex or Claude Code can be layered on top
 ```text
 cmd/opsro/                 CLI entrypoint
 examples/rbac/             sample Kubernetes read-only RBAC
-brokers/host-readonly/     host-side design notes and ForceCommand example
-docs/                      architecture and security notes
+examples/config.json       sample host inventory config
+brokers/host-readonly/     host-side broker script and ForceCommand notes
+docs/                      architecture, security, and quickstart notes
 ```
 
 ## Roadmap
@@ -102,7 +116,9 @@ docs/                      architecture and security notes
 
 - read-only K8s CLI
 - sample RBAC
-- host broker design
+- sample host read-only broker
+- host inventory config
+- quickstart docs
 
 ### V2
 

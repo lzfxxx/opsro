@@ -1,0 +1,14 @@
+{
+  "hosts": {
+    "web-01": {
+      "address": "10.0.1.12",
+      "user": "opsro",
+      "port": 22
+    },
+    "worker-03": {
+      "address": "10.0.2.33",
+      "user": "opsro",
+      "port": 22
+    }
+  }
+}
