@@ -78,6 +78,15 @@ Tell the agent:
 
 For humans, `k9s --readonly` is a good complement. For agents, `opsro` is a better fit because it returns plain command output instead of an interactive TUI.
 
+## Container Runtime
+
+A minimal `Dockerfile` is included for a read-only runtime that contains:
+
+- `opsro`
+- `kubectl`
+
+It is intentionally agent-agnostic so Codex or Claude Code can be layered on top later.
+
 ## Project Layout
 
 ```text
