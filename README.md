@@ -47,21 +47,53 @@ The point of `opsro` is to give agents a smaller, safer command surface:
 
 - a fixed read-only command set
 - stable usage patterns for prompts/skills
-- a path to add host/log integrations later without changing the agent contract
+- a path to add host and log integrations later without changing the agent contract
 
-## Quick Start
+## Install
 
-### 1. Build
+### CLI
+
+Build locally:
 
 ```bash
 go build -o bin/opsro ./cmd/opsro
 ```
 
-### 2. Prepare a read-only kubeconfig
+Or download a release artifact from GitHub Releases after tagging a version.
+
+### Containers
+
+Base runtime image:
+
+```bash
+docker pull ghcr.io/lzfxxx/opsro:<version>
+```
+
+Codex runtime image:
+
+```bash
+docker pull ghcr.io/lzfxxx/opsro-codex:<version>
+```
+
+Claude Code runtime image:
+
+```bash
+docker pull ghcr.io/lzfxxx/opsro-claude:<version>
+```
+
+## Quick Start
+
+### 1. Prepare a read-only kubeconfig
 
 Use the sample RBAC in `examples/rbac/readonly-clusterrole.yaml` and generate a kubeconfig that maps to that read-only identity.
 
-### 3. Run read-only queries
+### 2. Build
+
+```bash
+make build
+```
+
+### 3. Run read-only Kubernetes queries
 
 ```bash
 ./bin/opsro k8s --context prod get pods -A
@@ -80,6 +112,8 @@ Create `opsro.json` from `examples/config.json`, install `brokers/host-readonly/
 ./bin/opsro host logs web-01 nginx --since=10m --tail=200
 ./bin/opsro host run web-01 -- journalctl -u nginx --since=10m --no-pager
 ```
+
+For a fuller walkthrough, see `docs/quickstart.md`.
 
 ## Recommended Agent Usage
 
@@ -102,15 +136,33 @@ In the agent image, `kubectl` and `ssh` are hidden behind `opsro` by default wra
 
 The compose example mounts both a read-only kubeconfig and an `opsro` host inventory file via `OPSRO_CONFIG`.
 
+## Release
+
+Tag a version to publish both CLI artifacts and container images. Release automation only runs on pushed version tags:
+
+```bash
+git tag v0.3.0
+git push origin v0.3.0
+```
+
+This repository includes:
+
+- `.goreleaser.yaml` for GitHub Releases
+- `.github/workflows/release.yml` for CLI binaries
+- `.github/workflows/containers.yml` for GHCR images
+
 ## Project Layout
 
 ```text
 cmd/opsro/                 CLI entrypoint
 examples/rbac/             sample Kubernetes read-only RBAC
 examples/config.json       sample host inventory config
+examples/docker-compose.agent.yml
+                           local Codex and Claude Code container example
 brokers/host-readonly/     host-side broker script and ForceCommand notes
 docs/                      architecture, security, quickstart, and container notes
 docker/                    entrypoint and direct-command blockers for agent images
+.github/workflows/         release automation for CLI and containers
 ```
 
 ## Roadmap
@@ -122,11 +174,11 @@ docker/                    entrypoint and direct-command blockers for agent imag
 - sample host read-only broker
 - host inventory config
 - quickstart docs
+- release automation
 
 ### V2
 
 - stronger agent runtime isolation
 - log source adapters
-- write request / approval flow
+- write request and approval flow
 - optional MCP wrapper
-```
