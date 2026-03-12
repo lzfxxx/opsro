@@ -2,36 +2,40 @@
 
 English | [简体中文](README.zh-CN.md)
 
-`opsro` is a **read-only operations CLI** for AI agents and humans.
+`opsro` is a **read-only operations CLI for coding agents**.
 
-It gives Codex / Claude Code a narrow, predictable surface for production inspection instead of handing them a general-purpose shell, `kubectl`, or `ssh`.
+It is designed for the setup where Codex / Claude Code runs inside an isolated container, then uses `opsro` to inspect Kubernetes and hosts through a narrow, controlled interface.
 
 ## What this project is for
 
 Use `opsro` when you want an agent to:
 
-- inspect Kubernetes safely with a read-only kubeconfig
+- inspect Kubernetes with a read-only kubeconfig
 - inspect hosts through a read-only SSH broker
 - read logs and runtime state during incidents
-- avoid broad credentials and direct shell access
+- avoid direct shell access and broad credentials
 
-## Install CLI
+## 1. Prepare the backend access
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh
-```
+`opsro` is only the agent-facing CLI. The real security boundary stays in your backend.
 
-Pin a version:
+### Kubernetes
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh -s -- --version v0.3.2
-```
+Install read-only RBAC and generate a kubeconfig for that identity:
 
-The installer downloads the matching release binary for your OS/arch and installs `opsro` into `/usr/local/bin`, `$HOME/.local/bin`, or `./bin`.
+- `examples/rbac/readonly-clusterrole.yaml`
 
-If you only want the agent containers, you can skip local CLI install and go straight to Docker.
+### Hosts
 
-## Quick Start
+Install the read-only broker on the target host:
+
+- `brokers/host-readonly/readonly-broker.sh`
+
+Then force the SSH user into that broker with `ForceCommand` and configure host inventory from `examples/config.json`.
+
+See `docs/quickstart.md` for the exact `sshd_config` example and step-by-step setup.
+
+## 2. Run the agent container
 
 Pull images:
 
@@ -40,7 +44,7 @@ docker pull ghcr.io/lzfxxx/opsro-codex:latest
 docker pull ghcr.io/lzfxxx/opsro-claude:latest
 ```
 
-Both images expect:
+Both agent images expect:
 
 - `KUBECONFIG=/config/kubeconfig`
 - `OPSRO_CONFIG=/config/opsro.json`
@@ -101,45 +105,16 @@ docker run --rm -it \
 claude login
 ```
 
-Examples:
-
-- `examples/docker-compose.agent.yml`
-- `examples/.env.codex.example`
-- `examples/.env.claude.example`
-
-## Kubernetes RBAC
-
-Apply the sample read-only RBAC and generate a kubeconfig for that identity:
-
-- `examples/rbac/readonly-clusterrole.yaml`
-
-Then you can run:
+## 3. Use opsro inside the container
 
 ```bash
-./bin/opsro k8s --context prod get pods -A
-./bin/opsro k8s --context prod logs deployment/api -n prod --since=10m
+opsro k8s --context prod get pods -A
+opsro k8s --context prod logs deployment/api -n prod --since=10m
+opsro host status web-01
+opsro host logs web-01 nginx --since=10m --tail=200
 ```
 
-## Host Read-Only Broker
-
-On the target host:
-
-1. Install `brokers/host-readonly/readonly-broker.sh` as `/usr/local/bin/readonly-broker`
-2. Create a low-privilege SSH user such as `opsro`
-3. Force that user into the broker with SSH `ForceCommand`
-4. Configure inventory from `examples/config.json`
-
-Then you can run:
-
-```bash
-./bin/opsro host status web-01
-./bin/opsro host logs web-01 nginx --since=10m --tail=200
-./bin/opsro host run web-01 -- journalctl -u nginx --since=10m --no-pager
-```
-
-See `docs/quickstart.md` for the exact `sshd_config` example.
-
-## Mechanism
+## How it works
 
 ```text
 Codex / Claude Code / Human
@@ -161,13 +136,13 @@ Codex / Claude Code / Human
 
 ## Roadmap
 
+- one-command backend bootstrap for K8s read-only access and host broker setup
 - stronger runtime isolation and policy
 - richer operational primitives for logs / metrics / traces
 - approvals and audit trail for sensitive actions
-- better multi-cluster and multi-host ergonomics
 
-More detail:
+## Optional
 
-- `docs/quickstart.md`
-- `docs/containers.md`
-- `examples/`
+- `examples/docker-compose.agent.yml` if you want a reusable local template
+- `scripts/install.sh` if you want to install the bare `opsro` CLI locally
+- `docs/containers.md`, `docs/quickstart.md`, `examples/` for more detail

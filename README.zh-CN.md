@@ -2,36 +2,40 @@
 
 [English](README.md) | 简体中文
 
-`opsro` 是一个给 AI agent 和人工运维使用的**只读运维 CLI**。
+`opsro` 是一个**给 coding agent 用的只读运维 CLI**。
 
-它的目标不是把通用 shell、`kubectl`、`ssh` 直接交给 Codex / Claude Code，而是给它们一个更窄、更稳定、可控的生产排查入口。
+它的目标场景是：让 Codex / Claude Code 跑在隔离容器里，再通过 `opsro` 以一个更窄、更稳定、可控的接口去查看 Kubernetes 和宿主机。
 
 ## 这个项目是干什么的
 
 适合这样的场景：
 
-- 让 agent 用只读 kubeconfig 安全查看 Kubernetes
+- 让 agent 用只读 kubeconfig 查看 Kubernetes
 - 让 agent 通过只读 SSH broker 查看宿主机
 - 在故障排查时读取日志和运行时状态
-- 避免直接暴露大范围凭证和通用 shell
+- 避免直接暴露通用 shell 和大范围凭证
 
-## 安装 CLI
+## 1. 先准备后端访问能力
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh
-```
+`opsro` 只是给 agent 调用的 CLI，真正的安全边界仍然在后端。
 
-固定版本安装：
+### Kubernetes
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh -s -- --version v0.3.2
-```
+先安装只读 RBAC，并为这个身份生成 kubeconfig：
 
-这个安装脚本会自动识别当前系统和架构，下载对应 release 二进制，并把 `opsro` 安装到 `/usr/local/bin`、`$HOME/.local/bin` 或 `./bin`。
+- `examples/rbac/readonly-clusterrole.yaml`
 
-如果你只想跑 agent 容器，也可以跳过本地 CLI 安装，直接看下面的 Docker 用法。
+### 宿主机
 
-## 快速开始
+先在目标宿主机安装只读 broker：
+
+- `brokers/host-readonly/readonly-broker.sh`
+
+然后用 `ForceCommand` 把 SSH 用户强制接入 broker，再按 `examples/config.json` 配置 host inventory。
+
+完整 `sshd_config` 示例和逐步说明见 `docs/quickstart.md`。
+
+## 2. 运行 agent 容器
 
 先拉镜像：
 
@@ -40,7 +44,7 @@ docker pull ghcr.io/lzfxxx/opsro-codex:latest
 docker pull ghcr.io/lzfxxx/opsro-claude:latest
 ```
 
-两个镜像都默认需要：
+两个 agent 镜像都默认需要：
 
 - `KUBECONFIG=/config/kubeconfig`
 - `OPSRO_CONFIG=/config/opsro.json`
@@ -70,7 +74,7 @@ docker run --rm -it \
   ghcr.io/lzfxxx/opsro-codex:latest
 ```
 
-如果**不传** API key 相关环境变量，Codex 就会回到它自己的交互式登录流程。想保留登录状态，就把 `/root/.codex` 挂出来。
+如果**不传** API key 环境变量，Codex 就会回到自己的交互式登录流程。想保留登录状态，就把 `/root/.codex` 挂出来。
 
 ### Claude Code
 
@@ -101,43 +105,14 @@ docker run --rm -it \
 claude login
 ```
 
-可直接参考：
-
-- `examples/docker-compose.agent.yml`
-- `examples/.env.codex.example`
-- `examples/.env.claude.example`
-
-## Kubernetes RBAC
-
-先应用只读 RBAC 示例，再为这个只读身份生成 kubeconfig：
-
-- `examples/rbac/readonly-clusterrole.yaml`
-
-之后就可以这样用：
+## 3. 在容器里使用 opsro
 
 ```bash
-./bin/opsro k8s --context prod get pods -A
-./bin/opsro k8s --context prod logs deployment/api -n prod --since=10m
+opsro k8s --context prod get pods -A
+opsro k8s --context prod logs deployment/api -n prod --since=10m
+opsro host status web-01
+opsro host logs web-01 nginx --since=10m --tail=200
 ```
-
-## 宿主机 Read-Only Broker
-
-在目标宿主机上：
-
-1. 把 `brokers/host-readonly/readonly-broker.sh` 安装到 `/usr/local/bin/readonly-broker`
-2. 创建一个低权限 SSH 用户，比如 `opsro`
-3. 用 SSH `ForceCommand` 把这个用户强制接入 broker
-4. 按 `examples/config.json` 配置 inventory
-
-之后就可以这样用：
-
-```bash
-./bin/opsro host status web-01
-./bin/opsro host logs web-01 nginx --since=10m --tail=200
-./bin/opsro host run web-01 -- journalctl -u nginx --since=10m --no-pager
-```
-
-`ForceCommand` 的完整示例可以看 `docs/quickstart.md`。
 
 ## 机制简述
 
@@ -161,13 +136,13 @@ Codex / Claude Code / Human
 
 ## Roadmap
 
+- 做到一键打通后端环境：K8s 只读接入 + Host Broker 安装
 - 更强的运行时隔离和策略控制
 - 更丰富的运维原语：日志 / 指标 / trace
 - 面向敏感动作的审批和审计链路
-- 更好的多集群、多宿主机使用体验
 
-更多细节可以看：
+## 可选内容
 
-- `docs/quickstart.md`
-- `docs/containers.md`
-- `examples/`
+- `examples/docker-compose.agent.yml`：如果你想保留一个可复用模板
+- `scripts/install.sh`：如果你想在本机单独安装裸 `opsro` CLI
+- `docs/containers.md`、`docs/quickstart.md`、`examples/`：查看更完整的细节
