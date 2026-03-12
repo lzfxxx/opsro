@@ -37,6 +37,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
             type=sha
 
       - name: Docker metadata (opsro-codex)
@@ -47,6 +48,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
             type=sha
 
       - name: Docker metadata (opsro-claude)
@@ -57,6 +59,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
             type=sha
 
       - name: Build and push opsro

@@ -105,19 +105,25 @@ make build
 基础运行时镜像：
 
 ```bash
-docker pull ghcr.io/lzfxxx/opsro:<version>
+docker pull ghcr.io/lzfxxx/opsro:latest
+# 或固定版本
+# docker pull ghcr.io/lzfxxx/opsro:<version>
 ```
 
 Codex 运行时镜像：
 
 ```bash
-docker pull ghcr.io/lzfxxx/opsro-codex:<version>
+docker pull ghcr.io/lzfxxx/opsro-codex:latest
+# 或固定版本
+# docker pull ghcr.io/lzfxxx/opsro-codex:<version>
 ```
 
 Claude Code 运行时镜像：
 
 ```bash
-docker pull ghcr.io/lzfxxx/opsro-claude:<version>
+docker pull ghcr.io/lzfxxx/opsro-claude:latest
+# 或固定版本
+# docker pull ghcr.io/lzfxxx/opsro-claude:<version>
 ```
 
 ## 快速开始

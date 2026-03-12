@@ -105,19 +105,25 @@ Or download a release artifact from GitHub Releases.
 Base runtime image:
 
 ```bash
-docker pull ghcr.io/lzfxxx/opsro:<version>
+docker pull ghcr.io/lzfxxx/opsro:latest
+# or pin a version
+# docker pull ghcr.io/lzfxxx/opsro:<version>
 ```
 
 Codex runtime image:
 
 ```bash
-docker pull ghcr.io/lzfxxx/opsro-codex:<version>
+docker pull ghcr.io/lzfxxx/opsro-codex:latest
+# or pin a version
+# docker pull ghcr.io/lzfxxx/opsro-codex:<version>
 ```
 
 Claude Code runtime image:
 
 ```bash
-docker pull ghcr.io/lzfxxx/opsro-claude:<version>
+docker pull ghcr.io/lzfxxx/opsro-claude:latest
+# or pin a version
+# docker pull ghcr.io/lzfxxx/opsro-claude:<version>
 ```
 
 ## Quick Start
