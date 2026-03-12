@@ -46,6 +46,30 @@ docker build -f Dockerfile.agent \
   -t opsro-claude:dev .
 ```
 
+## Authentication
+
+### Codex
+
+Codex is typically configured with environment variables:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL` for OpenAI-compatible gateways
+
+Use `examples/.env.codex.example` as a starting point.
+
+### Claude Code
+
+Claude Code can be configured in two common ways:
+
+1. API key mode through environment variables
+   - `ANTHROPIC_API_KEY`
+   - optionally `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` when using a compatible gateway
+2. OAuth / interactive login inside the container
+   - mount a persistent config directory such as `/root/.config`
+   - run `claude login` once inside the container
+
+Use `examples/.env.claude.example` as a starting point for API-key mode.
+
 ## Compose Example
 
 See `examples/docker-compose.agent.yml`.
@@ -75,3 +99,4 @@ Recommended environment:
 - Kubernetes safety still comes from RBAC.
 - Host safety still comes from `ForceCommand` and the host broker allowlist.
 - The container only narrows the local tool surface; it does not replace backend authorization.
+- If you use OAuth for Claude Code, keep the mounted config volume persistent across restarts.

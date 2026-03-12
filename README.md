@@ -126,6 +126,104 @@ docker pull ghcr.io/lzfxxx/opsro-claude:latest
 # docker pull ghcr.io/lzfxxx/opsro-claude:<version>
 ```
 
+## Running the Agent Images
+
+### Common runtime mounts
+
+Both agent images expect:
+
+- a read-only kubeconfig mounted at `/config/kubeconfig`
+- an `opsro` host inventory mounted at `/config/opsro.json`
+- a writable workspace mounted at `/workspace`
+
+The matching runtime variables are:
+
+- `KUBECONFIG=/config/kubeconfig`
+- `OPSRO_CONFIG=/config/opsro.json`
+
+### Run Codex with environment variables
+
+Codex is typically configured with environment variables.
+
+Example:
+
+```bash
+docker run --rm -it \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -e OPENAI_BASE_URL="$OPENAI_BASE_URL" \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  ghcr.io/lzfxxx/opsro-codex:latest
+```
+
+Use `examples/.env.codex.example` as a starting point.
+
+### Run Claude Code with environment variables
+
+Claude Code can also be configured through environment variables.
+
+Example:
+
+```bash
+docker run --rm -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  ghcr.io/lzfxxx/opsro-claude:latest
+```
+
+If your Claude Code setup uses a compatible gateway, you can additionally set variables such as:
+
+- `ANTHROPIC_BASE_URL`
+- `ANTHROPIC_AUTH_TOKEN`
+
+Use `examples/.env.claude.example` as a starting point.
+
+### Run Claude Code with OAuth
+
+If you prefer OAuth or browser-based login for Claude Code:
+
+- mount a persistent config directory
+- start the container
+- run `claude login` once
+
+Example:
+
+```bash
+docker run --rm -it \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  -v opsro-claude-config:/root/.config \
+  ghcr.io/lzfxxx/opsro-claude:latest
+```
+
+Inside the container:
+
+```bash
+claude login
+```
+
+Keep that config volume mounted across restarts.
+
+### Compose example
+
+See `examples/docker-compose.agent.yml`.
+
+The example uses:
+
+- `.env.codex` for Codex credentials
+- `.env.claude` for Claude Code credentials
+- a persistent `claude-config` volume for Claude OAuth or cached configuration
+
 ## Quick Start
 
 ### 1. Prepare a read-only kubeconfig
@@ -253,6 +351,7 @@ examples/docker-compose.agent.yml
                            local Codex and Claude Code container example
 brokers/host-readonly/     host-side broker script and ForceCommand notes
 docs/                      architecture, security, quickstart, setup, and container notes
+examples/.env.*.example    sample agent credential files
 templates/                 files seeded into /workspace for agents and users
 docker/                    entrypoint and direct-command blockers for agent images
 .github/workflows/         release automation for CLI and containers

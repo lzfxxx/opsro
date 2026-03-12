@@ -126,6 +126,104 @@ docker pull ghcr.io/lzfxxx/opsro-claude:latest
 # docker pull ghcr.io/lzfxxx/opsro-claude:<version>
 ```
 
+## 如何运行 Agent 镜像
+
+### 通用挂载
+
+两个 agent 镜像都建议挂载：
+
+- 只读 kubeconfig 到 `/config/kubeconfig`
+- `opsro` 宿主机 inventory 到 `/config/opsro.json`
+- 可写工作目录到 `/workspace`
+
+对应环境变量：
+
+- `KUBECONFIG=/config/kubeconfig`
+- `OPSRO_CONFIG=/config/opsro.json`
+
+### Codex：用环境变量传 API 配置
+
+Codex 一般直接用环境变量配置。
+
+示例：
+
+```bash
+docker run --rm -it \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -e OPENAI_BASE_URL="$OPENAI_BASE_URL" \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  ghcr.io/lzfxxx/opsro-codex:latest
+```
+
+可参考：`examples/.env.codex.example`
+
+### Claude Code：用环境变量传 API 配置
+
+Claude Code 也可以通过环境变量配置。
+
+示例：
+
+```bash
+docker run --rm -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  ghcr.io/lzfxxx/opsro-claude:latest
+```
+
+如果你的 Claude Code 使用兼容网关，还可以额外设置：
+
+- `ANTHROPIC_BASE_URL`
+- `ANTHROPIC_AUTH_TOKEN`
+
+可参考：`examples/.env.claude.example`
+
+### Claude Code：用 OAuth 登录
+
+如果你想走 OAuth / 浏览器登录：
+
+- 挂一个持久化配置目录
+- 启动容器
+- 在容器里执行一次 `claude login`
+
+示例：
+
+```bash
+docker run --rm -it \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  -v opsro-claude-config:/root/.config \
+  ghcr.io/lzfxxx/opsro-claude:latest
+```
+
+进入容器后执行：
+
+```bash
+claude login
+```
+
+之后保留这个配置卷即可。
+
+### Compose 示例
+
+见：`examples/docker-compose.agent.yml`
+
+这个示例默认使用：
+
+- `.env.codex` 存 Codex 配置
+- `.env.claude` 存 Claude Code 配置
+- `claude-config` 持久化 Claude OAuth 或缓存配置
+
 ## 快速开始
 
 ### 1. 准备只读 kubeconfig
@@ -251,6 +349,7 @@ examples/rbac/             Kubernetes 只读 RBAC 示例
 examples/config.json       宿主机 inventory 配置示例
 examples/docker-compose.agent.yml
                            本地 Codex 和 Claude Code 容器示例
+examples/.env.*.example    agent 凭证环境变量示例
 brokers/host-readonly/     宿主机 broker 脚本和 ForceCommand 说明
 docs/                      架构、安全、快速开始、容器说明
 docker/                    agent 镜像入口和直接命令拦截脚本

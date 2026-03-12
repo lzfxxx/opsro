@@ -10,6 +10,8 @@ services:
     working_dir: /workspace
     stdin_open: true
     tty: true
+    env_file:
+      - .env.codex
     environment:
       KUBECONFIG: /config/kubeconfig
       OPSRO_CONFIG: /config/opsro.json
@@ -29,6 +31,8 @@ services:
     working_dir: /workspace
     stdin_open: true
     tty: true
+    env_file:
+      - .env.claude
     environment:
       KUBECONFIG: /config/kubeconfig
       OPSRO_CONFIG: /config/opsro.json
@@ -36,3 +40,7 @@ services:
       - ../examples/config.json:/config/opsro.json:ro
       - ./kubeconfig:/config/kubeconfig:ro
       - ./workspace:/workspace
+      - claude-config:/root/.config
+
+volumes:
+  claude-config:
