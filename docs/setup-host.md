@@ -8,6 +8,26 @@ Create a dedicated low-privilege SSH user whose sessions are forced into a read-
 
 ## Steps
 
+### Recommended
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-host-broker.sh | sudo sh
+```
+
+By default this installs the broker to `/usr/local/bin/readonly-broker`, creates the `opsro` user if needed, writes an `sshd` config fragment (or managed block fallback), validates config, and reloads `sshd`.
+
+Useful flags:
+
+- `--user opsro`
+- `--install-path /usr/local/bin/readonly-broker`
+- `--inventory-name web-01`
+- `--address 10.0.1.12`
+- `--port 22`
+- `--skip-reload`
+- `--dry-run`
+
+### Manual
+
 1. Create a dedicated SSH user, for example `opsro`.
 2. Install the broker:
 

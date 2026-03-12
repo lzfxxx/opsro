@@ -23,17 +23,23 @@ Use `opsro` when you want an agent to:
 
 Install read-only RBAC and generate a kubeconfig for that identity:
 
-- `examples/rbac/readonly-clusterrole.yaml`
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-k8s-readonly.sh | sh
+```
+
+You can still inspect the underlying example manifest at `examples/rbac/readonly-clusterrole.yaml`.
 
 ### Hosts
 
 Install the read-only broker on the target host:
 
-- `brokers/host-readonly/readonly-broker.sh`
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-host-broker.sh | sudo sh
+```
 
-Then force the SSH user into that broker with `ForceCommand` and configure host inventory from `examples/config.json`.
+Then configure host inventory from `examples/config.json`.
 
-See `docs/quickstart.md` for the exact `sshd_config` example and step-by-step setup.
+See `docs/quickstart.md` for step-by-step setup and advanced flags.
 
 ## 2. Run the agent container
 

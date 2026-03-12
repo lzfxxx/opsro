@@ -23,17 +23,23 @@
 
 先安装只读 RBAC，并为这个身份生成 kubeconfig：
 
-- `examples/rbac/readonly-clusterrole.yaml`
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-k8s-readonly.sh | sh
+```
+
+底层示例清单仍然保留在 `examples/rbac/readonly-clusterrole.yaml`。
 
 ### 宿主机
 
 先在目标宿主机安装只读 broker：
 
-- `brokers/host-readonly/readonly-broker.sh`
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-host-broker.sh | sudo sh
+```
 
-然后用 `ForceCommand` 把 SSH 用户强制接入 broker，再按 `examples/config.json` 配置 host inventory。
+然后再按 `examples/config.json` 配置 host inventory。
 
-完整 `sshd_config` 示例和逐步说明见 `docs/quickstart.md`。
+完整逐步说明和高级参数见 `docs/quickstart.md`。
 
 ## 2. 运行 agent 容器
 

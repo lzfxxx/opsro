@@ -8,6 +8,25 @@ Create a dedicated read-only Kubernetes identity and mount its kubeconfig into t
 
 ## Steps
 
+### Recommended
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-k8s-readonly.sh | sh
+```
+
+By default this creates the `opsro-reader` ServiceAccount in `opsro-system`, applies the read-only ClusterRole/Binding, and writes `./kubeconfig.opsro`.
+
+Useful flags:
+
+- `--context prod`
+- `--namespace opsro-system`
+- `--service-account opsro-reader`
+- `--kubeconfig-out ./kubeconfig.opsro`
+- `--print-kubeconfig`
+- `--dry-run`
+
+### Manual
+
 1. Create the namespace if needed:
 
 ```bash

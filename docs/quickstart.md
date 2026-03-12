@@ -2,8 +2,13 @@
 
 ## Kubernetes Read-Only
 
-1. Apply the sample RBAC from `examples/rbac/readonly-clusterrole.yaml`.
-2. Generate a kubeconfig for that read-only identity.
+1. Run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-k8s-readonly.sh | sh
+```
+
+2. Mount the generated kubeconfig into the agent container.
 3. Run:
 
 ```bash
@@ -14,10 +19,13 @@ make build
 
 ## Host Read-Only
 
-1. Copy `brokers/host-readonly/readonly-broker.sh` to the host as `/usr/local/bin/readonly-broker`.
-2. Make it executable.
-3. Create a low-privilege SSH user, for example `opsro`.
-4. Add a `ForceCommand` block in `sshd_config`:
+1. Run on the target host:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-host-broker.sh | sudo sh
+```
+
+2. If you want the manual path instead, install the broker and add a `ForceCommand` block in `sshd_config`:
 
 ```sshconfig
 Match User opsro
@@ -30,12 +38,12 @@ Match User opsro
     PermitUserEnvironment no
 ```
 
-5. Restart `sshd`.
-6. Copy `examples/config.json` to either:
+3. Restart `sshd` if you used the manual path.
+4. Copy `examples/config.json` to either:
    - `./opsro.json`, or
    - `~/.config/opsro/config.json`
 
-7. Run:
+5. Run:
 
 ```bash
 ./bin/opsro host status web-01

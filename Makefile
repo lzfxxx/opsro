@@ -1,6 +1,6 @@
 BINARY := bin/opsro
 
-.PHONY: build test fmt docker-codex docker-claude
+.PHONY: build test test-shell fmt docker-codex docker-claude
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -8,8 +8,13 @@ build:
 	mkdir -p bin
 	go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY) ./cmd/opsro
 
-test:
+test: test-shell
 	go test ./...
+
+test-shell:
+	chmod +x scripts/install.sh scripts/install-k8s-readonly.sh scripts/install-host-broker.sh tests/*.sh
+	./tests/installers_test.sh
+	./tests/broker_test.sh
 
 fmt:
 	gofmt -w ./cmd
