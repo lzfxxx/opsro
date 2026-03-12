@@ -2,39 +2,128 @@
 
 English | [简体中文](README.zh-CN.md)
 
-`opsro` is a read-only operations CLI for AI agents and humans.
+`opsro` is a **read-only operations CLI** for AI agents and humans.
 
-It gives `Codex`, `Claude Code`, and human operators a narrow command surface for production inspection without handing them a general-purpose shell.
+It gives Codex / Claude Code a narrow, predictable surface for production inspection instead of handing them a general-purpose shell, `kubectl`, or `ssh`.
 
-## What It Is
+## What this project is for
 
-`opsro` is designed for the common setup where you want an agent to:
+Use `opsro` when you want an agent to:
 
-- inspect Kubernetes clusters safely
-- read logs and runtime state
-- investigate incidents in production
-- inspect hosts through a read-only broker
-- avoid direct use of `kubectl`, `ssh`, and broad credentials
+- inspect Kubernetes safely with a read-only kubeconfig
+- inspect hosts through a read-only SSH broker
+- read logs and runtime state during incidents
+- avoid broad credentials and direct shell access
 
-V1 is intentionally focused on read-only operations.
+## Quick Start
 
-## What It Is Not
+Pull images:
 
-`opsro` is not:
+```bash
+docker pull ghcr.io/lzfxxx/opsro-codex:latest
+docker pull ghcr.io/lzfxxx/opsro-claude:latest
+```
 
-- a full agent platform
-- an approval workflow engine
-- a replacement for Kubernetes RBAC
-- a host mutation framework
-- a general shell sandbox
+Both images expect:
 
-The real permission boundaries still live in your backend systems:
+- `KUBECONFIG=/config/kubeconfig`
+- `OPSRO_CONFIG=/config/opsro.json`
+- a read-only kubeconfig mounted at `/config/kubeconfig`
+- an `opsro` inventory mounted at `/config/opsro.json`
+- a writable workspace mounted at `/workspace`
 
-- Kubernetes RBAC for clusters
-- SSH `ForceCommand` plus an allowlist broker for hosts
-- container isolation for agent runtime constraints
+### Codex
 
-## How It Works
+If `OPENAI_API_KEY` is present and Codex is not logged in yet, the `opsro-codex` entrypoint automatically runs:
+
+```bash
+printenv OPENAI_API_KEY | codex login --with-api-key
+```
+
+```bash
+docker run --rm -it \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -e OPENAI_BASE_URL="$OPENAI_BASE_URL" \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -e CODEX_HOME=/root/.codex \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  -v opsro-codex-config:/root/.codex \
+  ghcr.io/lzfxxx/opsro-codex:latest
+```
+
+If you do not pass API-key env vars, Codex falls back to its normal interactive login flow. Keep `/root/.codex` mounted if you want that login state to persist.
+
+### Claude Code
+
+```bash
+docker run --rm -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  ghcr.io/lzfxxx/opsro-claude:latest
+```
+
+If you do not pass API-key env vars, use OAuth once and persist config:
+
+```bash
+docker run --rm -it \
+  -e KUBECONFIG=/config/kubeconfig \
+  -e OPSRO_CONFIG=/config/opsro.json \
+  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
+  -v $(pwd)/opsro.json:/config/opsro.json:ro \
+  -v $(pwd)/workspace:/workspace \
+  -v opsro-claude-config:/root/.config \
+  ghcr.io/lzfxxx/opsro-claude:latest
+
+# inside container
+claude login
+```
+
+Examples:
+
+- `examples/docker-compose.agent.yml`
+- `examples/.env.codex.example`
+- `examples/.env.claude.example`
+
+## Kubernetes RBAC
+
+Apply the sample read-only RBAC and generate a kubeconfig for that identity:
+
+- `examples/rbac/readonly-clusterrole.yaml`
+
+Then you can run:
+
+```bash
+./bin/opsro k8s --context prod get pods -A
+./bin/opsro k8s --context prod logs deployment/api -n prod --since=10m
+```
+
+## Host Read-Only Broker
+
+On the target host:
+
+1. Install `brokers/host-readonly/readonly-broker.sh` as `/usr/local/bin/readonly-broker`
+2. Create a low-privilege SSH user such as `opsro`
+3. Force that user into the broker with SSH `ForceCommand`
+4. Configure inventory from `examples/config.json`
+
+Then you can run:
+
+```bash
+./bin/opsro host status web-01
+./bin/opsro host logs web-01 nginx --since=10m --tail=200
+./bin/opsro host run web-01 -- journalctl -u nginx --since=10m --no-pager
+```
+
+See `docs/quickstart.md` for the exact `sshd_config` example.
+
+## Mechanism
 
 ```text
 Codex / Claude Code / Human
@@ -50,346 +139,19 @@ Codex / Claude Code / Human
     RBAC       readonly-broker
 ```
 
-For Kubernetes:
-
-- `opsro` shells out to `kubectl`
-- `kubectl` uses a dedicated read-only kubeconfig
-- Kubernetes RBAC is the real enforcement boundary
-
-For hosts:
-
-- `opsro` shells out to `ssh`
-- the host-side `opsro` user is forced into `readonly-broker`
-- the broker only allows a fixed set of read-only commands
-
-## Why Use opsro Instead of Raw kubectl or ssh?
-
-You can already do read-only Kubernetes access with `kubectl + RBAC`.
-
-`opsro` adds value by standardizing the operator interface for agents:
-
-- one CLI contract for Kubernetes and hosts
-- a smaller and more predictable command surface
-- a path to layer on logs, approvals, and stricter runtime controls later
-- agent containers that hide direct `kubectl` and `ssh` behind `opsro`
-
-## Features in V1
-
-- `opsro k8s get`
-- `opsro k8s describe`
-- `opsro k8s logs`
-- `opsro k8s events`
-- `opsro k8s top`
-- `opsro host status`
-- `opsro host logs`
-- `opsro host run`
-- sample read-only Kubernetes RBAC
-- sample host read-only broker
-- agent container images for Codex and Claude Code
-- release automation for CLI binaries and containers
-
-## Install
-
-### CLI
-
-Build locally:
-
-```bash
-make build
-```
-
-Or download a release artifact from GitHub Releases.
-
-### Containers
-
-Base runtime image:
-
-```bash
-docker pull ghcr.io/lzfxxx/opsro:latest
-# or pin a version
-# docker pull ghcr.io/lzfxxx/opsro:<version>
-```
-
-Codex runtime image:
-
-```bash
-docker pull ghcr.io/lzfxxx/opsro-codex:latest
-# or pin a version
-# docker pull ghcr.io/lzfxxx/opsro-codex:<version>
-```
-
-Claude Code runtime image:
-
-```bash
-docker pull ghcr.io/lzfxxx/opsro-claude:latest
-# or pin a version
-# docker pull ghcr.io/lzfxxx/opsro-claude:<version>
-```
-
-## Running the Agent Images
-
-### Common runtime mounts
-
-Both agent images expect:
-
-- a read-only kubeconfig mounted at `/config/kubeconfig`
-- an `opsro` host inventory mounted at `/config/opsro.json`
-- a writable workspace mounted at `/workspace`
-
-The matching runtime variables are:
-
-- `KUBECONFIG=/config/kubeconfig`
-- `OPSRO_CONFIG=/config/opsro.json`
-- `CODEX_HOME=/root/.codex` for Codex state persistence
-
-### Run Codex with environment variables
-
-Codex is typically configured with environment variables.
-
-If `OPENAI_API_KEY` is present and Codex is not logged in yet, the image entrypoint automatically runs:
-
-```bash
-printenv OPENAI_API_KEY | codex login --with-api-key
-```
-
-Example:
-
-```bash
-docker run --rm -it \
-  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
-  -e OPENAI_BASE_URL="$OPENAI_BASE_URL" \
-  -e KUBECONFIG=/config/kubeconfig \
-  -e OPSRO_CONFIG=/config/opsro.json \
-  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
-  -v $(pwd)/opsro.json:/config/opsro.json:ro \
-  -v $(pwd)/workspace:/workspace \
-  -v opsro-codex-config:/root/.codex \
-  ghcr.io/lzfxxx/opsro-codex:latest
-```
-
-Mounting `/root/.codex` keeps Codex auth state across restarts.
-
-Use `examples/.env.codex.example` as a starting point.
-
-### Run Claude Code with environment variables
-
-Claude Code can also be configured through environment variables.
-
-Example:
-
-```bash
-docker run --rm -it \
-  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
-  -e KUBECONFIG=/config/kubeconfig \
-  -e OPSRO_CONFIG=/config/opsro.json \
-  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
-  -v $(pwd)/opsro.json:/config/opsro.json:ro \
-  -v $(pwd)/workspace:/workspace \
-  ghcr.io/lzfxxx/opsro-claude:latest
-```
-
-If your Claude Code setup uses a compatible gateway, you can additionally set variables such as:
-
-- `ANTHROPIC_BASE_URL`
-- `ANTHROPIC_AUTH_TOKEN`
-
-Use `examples/.env.claude.example` as a starting point.
-
-### Run Claude Code with OAuth
-
-If you prefer OAuth or browser-based login for Claude Code:
-
-- mount a persistent config directory
-- start the container
-- run `claude login` once
-
-Example:
-
-```bash
-docker run --rm -it \
-  -e KUBECONFIG=/config/kubeconfig \
-  -e OPSRO_CONFIG=/config/opsro.json \
-  -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
-  -v $(pwd)/opsro.json:/config/opsro.json:ro \
-  -v $(pwd)/workspace:/workspace \
-  -v opsro-claude-config:/root/.config \
-  ghcr.io/lzfxxx/opsro-claude:latest
-```
-
-Inside the container:
-
-```bash
-claude login
-```
-
-Keep that config volume mounted across restarts.
-
-### Compose example
-
-See `examples/docker-compose.agent.yml`.
-
-The example uses:
-
-- `.env.codex` for Codex credentials
-- `.env.claude` for Claude Code credentials
-- a persistent `claude-config` volume for Claude OAuth or cached configuration
-
-## Quick Start
-
-### 1. Prepare a read-only kubeconfig
-
-Apply the sample RBAC from `examples/rbac/readonly-clusterrole.yaml` and generate a kubeconfig for that read-only identity.
-
-### 2. Build the CLI
-
-```bash
-make build
-```
-
-### 3. Inspect Kubernetes
-
-```bash
-./bin/opsro k8s --context prod get pods -A
-./bin/opsro k8s --context prod describe deployment api -n prod
-./bin/opsro k8s --context prod logs deployment/api -n prod --since=10m
-./bin/opsro k8s --context prod events -n prod
-./bin/opsro k8s --context prod top pods -n prod
-```
-
-### 4. Optional host inspection
-
-Create `opsro.json` from `examples/config.json`, install `brokers/host-readonly/readonly-broker.sh` on the target host, and run:
-
-```bash
-./bin/opsro host status web-01
-./bin/opsro host logs web-01 nginx --since=10m --tail=200
-./bin/opsro host run web-01 -- journalctl -u nginx --since=10m --no-pager
-```
-
-A fuller walkthrough is in `docs/quickstart.md`.
-
-Additional setup guides:
-
-- `docs/setup-k8s.md`
-- `docs/setup-host.md`
-
-## Example Agent Usage
-
-Recommended instruction for an agent:
-
-- use `opsro` for all production inspection
-- do not call `kubectl` directly
-- do not call `ssh` directly
-- do not use any write-capable kubeconfig
-
-This is especially useful for Codex and Claude Code, where you want a strong convention and a smaller operational surface.
-
-## Agent Containers
-
-Two container paths are included:
-
-- `Dockerfile`: minimal runtime with `opsro` and `kubectl`
-- `Dockerfile.agent`: agent runtime for Codex or Claude Code
-
-In the agent image:
-
-- direct `kubectl` is blocked
-- direct `ssh` is blocked
-- the real binaries live under `/opt/opsro/bin`
-- `opsro` calls them through `OPSRO_KUBECTL` and `OPSRO_SSH`
-
-Example compose file:
-
-- `examples/docker-compose.agent.yml`
-
-Expected mounts:
-
-- read-only kubeconfig
-- `opsro` host inventory config
-- writable workspace for the agent itself
-
-On first start, the agent image seeds these files into `/workspace` if they do not already exist:
-
-- `AGENTS.md`
-- `CLAUDE.md`
-- `ONBOARD.md`
-- `SETUP_K8S.md`
-- `SETUP_HOST.md`
-- `opsro.json.example`
-
-## Security Model
-
-`opsro` narrows the client interface. It does not replace backend authorization.
-
-Kubernetes safety comes from:
-
-- a dedicated read-only kubeconfig
-- Kubernetes RBAC
-- avoiding direct write-capable credentials
-
-Host safety comes from:
-
-- a dedicated low-privilege SSH user
-- `ForceCommand`
-- `readonly-broker`
-- a strict allowlist of read-only commands
-
-If you need write operations and approvals, that belongs in V2.
-
-## Release
-
-Tag a version to publish both CLI artifacts and container images:
-
-```bash
-git tag v0.3.0
-git push origin v0.3.0
-```
-
-This repository includes:
-
-- `.goreleaser.yaml` for GitHub Releases
-- `.github/workflows/release.yml` for CLI binaries
-- `.github/workflows/containers.yml` for GHCR images
-
-## Project Layout
-
-```text
-cmd/opsro/                 CLI entrypoint
-examples/rbac/             sample Kubernetes read-only RBAC
-examples/config.json       sample host inventory config
-examples/docker-compose.agent.yml
-                           local Codex and Claude Code container example
-brokers/host-readonly/     host-side broker script and ForceCommand notes
-docs/                      architecture, security, quickstart, setup, and container notes
-examples/.env.*.example    sample agent credential files
-templates/                 files seeded into /workspace for agents and users
-docker/                    entrypoint and direct-command blockers for agent images
-.github/workflows/         release automation for CLI and containers
-```
-
-## Status
-
-Current status:
-
-- Kubernetes read-only flow: usable
-- Host read-only flow: minimal but usable
-- Agent containers: usable
-- Write actions and approval flow: not implemented yet
+- Kubernetes safety comes from RBAC.
+- Host safety comes from `ForceCommand` plus a read-only allowlist broker.
+- The container image narrows the local tool surface by blocking direct `kubectl` / `ssh`, but it does not replace backend authorization.
 
 ## Roadmap
 
-### V1
+- stronger runtime isolation and policy
+- richer operational primitives for logs / metrics / traces
+- approvals and audit trail for sensitive actions
+- better multi-cluster and multi-host ergonomics
 
-- read-only K8s CLI
-- sample RBAC
-- sample host read-only broker
-- host inventory config
-- quickstart docs
-- release automation
+More detail:
 
-### V2
-
-- stronger agent runtime isolation
-- log source adapters
-- write request and approval flow
-- optional MCP wrapper
+- `docs/quickstart.md`
+- `docs/containers.md`
+- `examples/`
