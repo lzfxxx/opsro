@@ -160,6 +160,11 @@ Create `opsro.json` from `examples/config.json`, install `brokers/host-readonly/
 
 A fuller walkthrough is in `docs/quickstart.md`.
 
+Additional setup guides:
+
+- `docs/setup-k8s.md`
+- `docs/setup-host.md`
+
 ## Example Agent Usage
 
 Recommended instruction for an agent:
@@ -194,6 +199,15 @@ Expected mounts:
 - read-only kubeconfig
 - `opsro` host inventory config
 - writable workspace for the agent itself
+
+On first start, the agent image seeds these files into `/workspace` if they do not already exist:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `ONBOARD.md`
+- `SETUP_K8S.md`
+- `SETUP_HOST.md`
+- `opsro.json.example`
 
 ## Security Model
 
@@ -238,7 +252,8 @@ examples/config.json       sample host inventory config
 examples/docker-compose.agent.yml
                            local Codex and Claude Code container example
 brokers/host-readonly/     host-side broker script and ForceCommand notes
-docs/                      architecture, security, quickstart, and container notes
+docs/                      architecture, security, quickstart, setup, and container notes
+templates/                 files seeded into /workspace for agents and users
 docker/                    entrypoint and direct-command blockers for agent images
 .github/workflows/         release automation for CLI and containers
 ```

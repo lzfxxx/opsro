@@ -160,6 +160,11 @@ make build
 
 更完整的步骤见 `docs/quickstart.md`。
 
+补充配置文档：
+
+- `docs/setup-k8s.md`
+- `docs/setup-host.md`
+
 ## 给 Agent 的推荐用法
 
 建议在提示词或 skill 里明确要求 agent：
@@ -194,6 +199,15 @@ make build
 - 只读 kubeconfig
 - `opsro` 宿主机 inventory 配置
 - agent 自己的工作目录
+
+agent 镜像首次启动时，如果 `/workspace` 下缺少这些文件，会自动写入：
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `ONBOARD.md`
+- `SETUP_K8S.md`
+- `SETUP_HOST.md`
+- `opsro.json.example`
 
 ## 安全模型
 
@@ -242,6 +256,24 @@ docs/                      架构、安全、快速开始、容器说明
 docker/                    agent 镜像入口和直接命令拦截脚本
 .github/workflows/         CLI 和容器的发布自动化
 ```
+
+## 文档与模板
+
+仓库文档：
+
+- `docs/quickstart.md`
+- `docs/setup-k8s.md`
+- `docs/setup-host.md`
+- `docs/containers.md`
+
+镜像内模板：
+
+- `/workspace/AGENTS.md`
+- `/workspace/CLAUDE.md`
+- `/workspace/ONBOARD.md`
+- `/workspace/SETUP_K8S.md`
+- `/workspace/SETUP_HOST.md`
+- `/workspace/opsro.json.example`
 
 ## 当前状态
 

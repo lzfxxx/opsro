@@ -56,6 +56,15 @@ Expected mounts:
 - an `opsro` config file with host inventory
 - a writable working directory for the agent itself
 
+On first start, the agent image seeds these files into `/workspace` if they do not already exist:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `ONBOARD.md`
+- `SETUP_K8S.md`
+- `SETUP_HOST.md`
+- `opsro.json.example`
+
 Recommended environment:
 
 - `KUBECONFIG=/config/kubeconfig`

@@ -35,6 +35,7 @@ RUN chmod +x /usr/local/bin/kubectl /usr/local/bin/ssh
 
 RUN npm install -g ${AGENT_PACKAGE}
 COPY --from=build-opsro /out/opsro /usr/local/bin/opsro
+COPY templates /opt/opsro/templates
 COPY docker/agent-entrypoint.sh /usr/local/bin/agent-entrypoint
 RUN chmod +x /usr/local/bin/agent-entrypoint
 
