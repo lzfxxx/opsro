@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const version = "0.2.0"
+var version = "dev"
 
 type config struct {
 	Hosts map[string]hostConfig `json:"hosts"`

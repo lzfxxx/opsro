@@ -2,9 +2,11 @@ BINARY := bin/opsro
 
 .PHONY: build test fmt docker-codex docker-claude
 
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+
 build:
 	mkdir -p bin
-	go build -o $(BINARY) ./cmd/opsro
+	go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY) ./cmd/opsro
 
 test:
 	go test ./...

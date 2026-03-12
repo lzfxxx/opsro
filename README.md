@@ -15,6 +15,22 @@ Use `opsro` when you want an agent to:
 - read logs and runtime state during incidents
 - avoid broad credentials and direct shell access
 
+## Install CLI
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh
+```
+
+Pin a version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh -s -- --version v0.3.2
+```
+
+The installer downloads the matching release binary for your OS/arch and installs `opsro` into `/usr/local/bin`, `$HOME/.local/bin`, or `./bin`.
+
+If you only want the agent containers, you can skip local CLI install and go straight to Docker.
+
 ## Quick Start
 
 Pull images:

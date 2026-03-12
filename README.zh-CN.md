@@ -15,6 +15,22 @@
 - 在故障排查时读取日志和运行时状态
 - 避免直接暴露大范围凭证和通用 shell
 
+## 安装 CLI
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh
+```
+
+固定版本安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install.sh | sh -s -- --version v0.3.2
+```
+
+这个安装脚本会自动识别当前系统和架构，下载对应 release 二进制，并把 `opsro` 安装到 `/usr/local/bin`、`$HOME/.local/bin` 或 `./bin`。
+
+如果你只想跑 agent 容器，也可以跳过本地 CLI 安装，直接看下面的 Docker 用法。
+
 ## 快速开始
 
 先拉镜像：
