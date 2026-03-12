@@ -140,10 +140,17 @@ docker pull ghcr.io/lzfxxx/opsro-claude:latest
 
 - `KUBECONFIG=/config/kubeconfig`
 - `OPSRO_CONFIG=/config/opsro.json`
+- `CODEX_HOME=/root/.codex`（给 Codex 持久化状态用）
 
 ### Codex：用环境变量传 API 配置
 
 Codex 一般直接用环境变量配置。
+
+如果存在 `OPENAI_API_KEY`，并且 Codex 当前还没登录，镜像 entrypoint 会自动执行：
+
+```bash
+printenv OPENAI_API_KEY | codex login --with-api-key
+```
 
 示例：
 
@@ -156,8 +163,11 @@ docker run --rm -it \
   -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
   -v $(pwd)/opsro.json:/config/opsro.json:ro \
   -v $(pwd)/workspace:/workspace \
+  -v opsro-codex-config:/root/.codex \
   ghcr.io/lzfxxx/opsro-codex:latest
 ```
+
+挂载 `/root/.codex` 可以保留 Codex 的登录状态。
 
 可参考：`examples/.env.codex.example`
 

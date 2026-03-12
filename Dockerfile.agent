@@ -42,6 +42,7 @@ RUN chmod +x /usr/local/bin/agent-entrypoint
 ENV OPSRO_KUBECTL=${OPSRO_HOME}/bin/kubectl
 ENV OPSRO_SSH=${OPSRO_HOME}/bin/ssh
 ENV OPSRO_AGENT_BIN=${AGENT_BIN}
+ENV CODEX_HOME=/root/.codex
 WORKDIR /workspace
 ENTRYPOINT ["/usr/local/bin/agent-entrypoint"]
 CMD ["/bin/sh"]

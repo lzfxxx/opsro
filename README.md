@@ -140,10 +140,17 @@ The matching runtime variables are:
 
 - `KUBECONFIG=/config/kubeconfig`
 - `OPSRO_CONFIG=/config/opsro.json`
+- `CODEX_HOME=/root/.codex` for Codex state persistence
 
 ### Run Codex with environment variables
 
 Codex is typically configured with environment variables.
+
+If `OPENAI_API_KEY` is present and Codex is not logged in yet, the image entrypoint automatically runs:
+
+```bash
+printenv OPENAI_API_KEY | codex login --with-api-key
+```
 
 Example:
 
@@ -156,8 +163,11 @@ docker run --rm -it \
   -v $(pwd)/kubeconfig:/config/kubeconfig:ro \
   -v $(pwd)/opsro.json:/config/opsro.json:ro \
   -v $(pwd)/workspace:/workspace \
+  -v opsro-codex-config:/root/.codex \
   ghcr.io/lzfxxx/opsro-codex:latest
 ```
+
+Mounting `/root/.codex` keeps Codex auth state across restarts.
 
 Use `examples/.env.codex.example` as a starting point.
 

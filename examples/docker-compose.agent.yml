@@ -15,10 +15,12 @@ services:
     environment:
       KUBECONFIG: /config/kubeconfig
       OPSRO_CONFIG: /config/opsro.json
+      CODEX_HOME: /root/.codex
     volumes:
       - ../examples/config.json:/config/opsro.json:ro
       - ./kubeconfig:/config/kubeconfig:ro
       - ./workspace:/workspace
+      - codex-config:/root/.codex
 
   claude:
     build:
@@ -43,4 +45,5 @@ services:
       - claude-config:/root/.config
 
 volumes:
+  codex-config:
   claude-config:

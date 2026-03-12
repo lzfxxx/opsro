@@ -55,6 +55,14 @@ Codex is typically configured with environment variables:
 - `OPENAI_API_KEY`
 - `OPENAI_BASE_URL` for OpenAI-compatible gateways
 
+In the `opsro-codex` image, if `OPENAI_API_KEY` is present and Codex is not logged in yet, the entrypoint automatically runs:
+
+```bash
+printenv OPENAI_API_KEY | codex login --with-api-key
+```
+
+To persist that login state across restarts, mount `/root/.codex`.
+
 Use `examples/.env.codex.example` as a starting point.
 
 ### Claude Code
@@ -73,6 +81,11 @@ Use `examples/.env.claude.example` as a starting point for API-key mode.
 ## Compose Example
 
 See `examples/docker-compose.agent.yml`.
+
+The compose example includes:
+
+- `codex-config` for persistent Codex auth state
+- `claude-config` for persistent Claude Code OAuth or cached config
 
 Expected mounts:
 
@@ -93,6 +106,7 @@ Recommended environment:
 
 - `KUBECONFIG=/config/kubeconfig`
 - `OPSRO_CONFIG=/config/opsro.json`
+- `CODEX_HOME=/root/.codex` for Codex auth state persistence
 
 ## Notes
 
