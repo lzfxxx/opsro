@@ -19,6 +19,19 @@
 
 `opsro` 只是给 agent 调用的 CLI，真正的安全边界仍然在后端。
 
+### 最省事的路径
+
+直接用 bootstrap 脚本，一次性产出 `kubeconfig.opsro`、`opsro.json` 和可运行的 agent 启动脚本：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/bootstrap.sh | sh -s -- \
+  --out-dir ./opsro-bootstrap \
+  --host-name web-01 \
+  --host-address 10.0.1.12
+```
+
+当前这个 MVP 版本里，K8s 会直接执行安装；Host 默认先生成一个 helper 脚本，除非你显式要求在本机直接安装。
+
 ### Kubernetes
 
 先安装只读 RBAC，并为这个身份生成 kubeconfig：
@@ -142,7 +155,7 @@ Codex / Claude Code / Human
 
 ## Roadmap
 
-- 做到一键打通后端环境：K8s 只读接入 + Host Broker 安装
+- 从管理节点直接远程打通 Host Broker，而不是先生成本地 helper
 - 更强的运行时隔离和策略控制
 - 更丰富的运维原语：日志 / 指标 / trace
 - 面向敏感动作的审批和审计链路
@@ -151,4 +164,4 @@ Codex / Claude Code / Human
 
 - `examples/docker-compose.agent.yml`：如果你想保留一个可复用模板
 - `scripts/install.sh`：如果你想在本机单独安装裸 `opsro` CLI
-- `docs/containers.md`、`docs/quickstart.md`、`examples/`：查看更完整的细节
+- `docs/bootstrap.md`、`docs/containers.md`、`docs/quickstart.md`、`examples/`：查看更完整的细节

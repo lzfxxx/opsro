@@ -19,6 +19,19 @@ Use `opsro` when you want an agent to:
 
 `opsro` is only the agent-facing CLI. The real security boundary stays in your backend.
 
+### Easiest path
+
+Use the bootstrap script to emit `kubeconfig.opsro`, `opsro.json`, and runnable agent scripts in one output directory:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/bootstrap.sh | sh -s -- \
+  --out-dir ./opsro-bootstrap \
+  --host-name web-01 \
+  --host-address 10.0.1.12
+```
+
+For the first MVP, K8s setup runs directly, while host setup is emitted as a helper script unless you explicitly run host install locally.
+
 ### Kubernetes
 
 Install read-only RBAC and generate a kubeconfig for that identity:
@@ -142,7 +155,7 @@ Codex / Claude Code / Human
 
 ## Roadmap
 
-- one-command backend bootstrap for K8s read-only access and host broker setup
+- remote host bootstrap from the management node instead of a generated local helper
 - stronger runtime isolation and policy
 - richer operational primitives for logs / metrics / traces
 - approvals and audit trail for sensitive actions
@@ -151,4 +164,4 @@ Codex / Claude Code / Human
 
 - `examples/docker-compose.agent.yml` if you want a reusable local template
 - `scripts/install.sh` if you want to install the bare `opsro` CLI locally
-- `docs/containers.md`, `docs/quickstart.md`, `examples/` for more detail
+- `docs/bootstrap.md`, `docs/containers.md`, `docs/quickstart.md`, `examples/` for more detail

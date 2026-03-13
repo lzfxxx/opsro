@@ -12,9 +12,10 @@ test: test-shell
 	go test ./...
 
 test-shell:
-	chmod +x scripts/install.sh scripts/install-k8s-readonly.sh scripts/install-host-broker.sh tests/*.sh
+	chmod +x scripts/install.sh scripts/bootstrap.sh scripts/install-k8s-readonly.sh scripts/install-host-broker.sh tests/*.sh
 	./tests/installers_test.sh
 	./tests/broker_test.sh
+	./tests/bootstrap_test.sh
 
 fmt:
 	gofmt -w ./cmd
