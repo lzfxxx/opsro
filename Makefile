@@ -13,6 +13,7 @@ test: test-shell
 
 test-shell:
 	chmod +x scripts/install.sh scripts/bootstrap.sh scripts/install-k8s-readonly.sh scripts/install-host-broker.sh tests/*.sh
+	./tests/install_test.sh
 	./tests/installers_test.sh
 	./tests/broker_test.sh
 	./tests/bootstrap_test.sh
