@@ -13,9 +13,15 @@ HOST_USER="opsro"
 PLAN=0
 DRY_RUN=0
 INSTALL_HOST_LOCAL=0
+INSTALL_HOST_REMOTE=0
+REMOTE_HOST=""
+REMOTE_SSH_USER="root"
+REMOTE_SSH_PORT="22"
+REMOTE_USE_SUDO=0
 SKIP_RELOAD=0
 REF="${OPSRO_REPO_REF:-main}"
 TMP_DIR=""
+SSH_BIN="${OPSRO_BOOTSTRAP_SSH_BIN:-ssh}"
 
 usage() {
   cat <<'EOF'
@@ -33,8 +39,13 @@ Options:
   --host-name NAME           host name to place into opsro.json
   --host-address ADDR        host address to place into opsro.json
   --host-port PORT           host SSH port (default: 22)
-  --host-user NAME           host SSH user (default: opsro)
+  --host-user NAME           host SSH user for opsro inventory (default: opsro)
   --install-host-local       run host installer on the current machine
+  --install-host-remote      run host installer on a remote machine via SSH
+  --remote-host ADDR         SSH target used with --install-host-remote
+  --remote-ssh-user NAME     SSH user for remote install (default: root)
+  --remote-ssh-port PORT     SSH port for remote install (default: 22)
+  --remote-use-sudo          prefix the remote installer with sudo
   --skip-reload              pass --skip-reload to the host installer
   --plan                     print planned actions only
   --dry-run                  run installers in dry-run mode and print generated artifacts
@@ -120,6 +131,29 @@ while [ "$#" -gt 0 ]; do
       INSTALL_HOST_LOCAL=1
       shift
       ;;
+    --install-host-remote)
+      INSTALL_HOST_REMOTE=1
+      shift
+      ;;
+    --remote-host)
+      [ "$#" -ge 2 ] || fail "--remote-host requires a value"
+      REMOTE_HOST="$2"
+      shift 2
+      ;;
+    --remote-ssh-user)
+      [ "$#" -ge 2 ] || fail "--remote-ssh-user requires a value"
+      REMOTE_SSH_USER="$2"
+      shift 2
+      ;;
+    --remote-ssh-port)
+      [ "$#" -ge 2 ] || fail "--remote-ssh-port requires a value"
+      REMOTE_SSH_PORT="$2"
+      shift 2
+      ;;
+    --remote-use-sudo)
+      REMOTE_USE_SUDO=1
+      shift
+      ;;
     --skip-reload)
       SKIP_RELOAD=1
       shift
@@ -160,6 +194,15 @@ if [ -n "$HOST_ADDRESS" ] && [ -z "$HOST_NAME" ]; then
 fi
 if [ "$INSTALL_HOST_LOCAL" -eq 1 ] && [ -z "$HOST_NAME" ]; then
   fail "--host-name and --host-address are required with --install-host-local"
+fi
+if [ "$INSTALL_HOST_REMOTE" -eq 1 ] && [ -z "$HOST_NAME" ]; then
+  fail "--host-name and --host-address are required with --install-host-remote"
+fi
+if [ "$INSTALL_HOST_LOCAL" -eq 1 ] && [ "$INSTALL_HOST_REMOTE" -eq 1 ]; then
+  fail "--install-host-local and --install-host-remote are mutually exclusive"
+fi
+if [ "$INSTALL_HOST_REMOTE" -eq 1 ] && [ -z "$REMOTE_HOST" ]; then
+  fail "--remote-host is required with --install-host-remote"
 fi
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" 2>/dev/null && pwd || pwd)
@@ -261,16 +304,58 @@ EOF
   chmod +x "$output_path"
 }
 
+shell_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\''/g")"
+}
+
 render_host_install_script() {
+  sudo_prefix=""
+  if [ "$REMOTE_USE_SUDO" -eq 1 ]; then
+    sudo_prefix="sudo "
+  fi
   cat <<EOF
 #!/bin/sh
 set -eu
-curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/${REF}/scripts/install-host-broker.sh | sudo sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/${REF}/scripts/install-host-broker.sh | ${sudo_prefix}sh -s -- \
   --user ${HOST_USER} \
   --inventory-name ${HOST_NAME} \
   --address ${HOST_ADDRESS} \
-  --port ${HOST_PORT}
+  --port ${HOST_PORT}$( [ "$SKIP_RELOAD" -eq 1 ] && printf ' \\
+  --skip-reload' )
 EOF
+}
+
+build_host_installer_args() {
+  set -- --user "$HOST_USER" --inventory-name "$HOST_NAME" --address "$HOST_ADDRESS" --port "$HOST_PORT"
+  if [ "$SKIP_RELOAD" -eq 1 ]; then
+    set -- "$@" --skip-reload
+  fi
+  if [ "$DRY_RUN" -eq 1 ]; then
+    set -- --dry-run "$@"
+  fi
+  printf '%s\n' "$@"
+}
+
+run_remote_host_bootstrap() {
+  need_cmd "$SSH_BIN"
+  remote_target="${REMOTE_SSH_USER}@${REMOTE_HOST}"
+  remote_cmd="sh -s --"
+  if [ "$REMOTE_USE_SUDO" -eq 1 ]; then
+    remote_cmd="sudo $remote_cmd"
+  fi
+  while IFS= read -r arg; do
+    remote_cmd="$remote_cmd $(shell_quote "$arg")"
+  done <<EOF
+$(build_host_installer_args)
+EOF
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    log "would install host remotely via SSH: ${remote_target}:${REMOTE_SSH_PORT}"
+    log "remote command: $remote_cmd"
+    return 0
+  fi
+
+  "$SSH_BIN" -p "$REMOTE_SSH_PORT" "$remote_target" "$remote_cmd" <"$HOST_INSTALLER"
 }
 
 run_k8s_bootstrap() {
@@ -291,15 +376,22 @@ run_host_bootstrap() {
   fi
 
   if [ "$INSTALL_HOST_LOCAL" -eq 1 ]; then
-    set -- --user "$HOST_USER" --inventory-name "$HOST_NAME" --address "$HOST_ADDRESS" --port "$HOST_PORT"
-    if [ "$SKIP_RELOAD" -eq 1 ]; then
-      set -- "$@" --skip-reload
-    fi
-    if [ "$DRY_RUN" -eq 1 ]; then
-      set -- --dry-run "$@"
-    fi
+    set --
+    while IFS= read -r arg; do
+      set -- "$@" "$arg"
+    done <<EOF
+$(build_host_installer_args)
+EOF
     "$HOST_INSTALLER" "$@"
-  elif [ "$DRY_RUN" -eq 1 ]; then
+    return 0
+  fi
+
+  if [ "$INSTALL_HOST_REMOTE" -eq 1 ]; then
+    run_remote_host_bootstrap
+    return 0
+  fi
+
+  if [ "$DRY_RUN" -eq 1 ]; then
     log "would generate host installer helper at: $HOST_INSTALL_PATH"
     render_host_install_script
   fi
@@ -314,6 +406,8 @@ if [ "$PLAN" -eq 1 ]; then
   if [ -n "$HOST_NAME" ]; then
     if [ "$INSTALL_HOST_LOCAL" -eq 1 ]; then
       log "host install mode: local"
+    elif [ "$INSTALL_HOST_REMOTE" -eq 1 ]; then
+      log "host install mode: remote (${REMOTE_SSH_USER}@${REMOTE_HOST}:${REMOTE_SSH_PORT})"
     else
       log "host install mode: emit helper script"
     fi
@@ -346,11 +440,11 @@ mkdir -p "$OUT_DIR/workspace"
 run_k8s_bootstrap
 render_opsro_config >"$OPSRO_CONFIG_PATH"
 
-if [ -n "$HOST_NAME" ] && [ "$INSTALL_HOST_LOCAL" -eq 0 ]; then
+if [ -n "$HOST_NAME" ] && [ "$INSTALL_HOST_LOCAL" -eq 0 ] && [ "$INSTALL_HOST_REMOTE" -eq 0 ]; then
   render_host_install_script >"$HOST_INSTALL_PATH"
   chmod +x "$HOST_INSTALL_PATH"
 fi
-if [ -n "$HOST_NAME" ] && [ "$INSTALL_HOST_LOCAL" -eq 1 ]; then
+if [ -n "$HOST_NAME" ] && { [ "$INSTALL_HOST_LOCAL" -eq 1 ] || [ "$INSTALL_HOST_REMOTE" -eq 1 ]; }; then
   run_host_bootstrap
 fi
 

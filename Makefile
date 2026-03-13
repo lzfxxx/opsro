@@ -17,6 +17,7 @@ test-shell:
 	./tests/installers_test.sh
 	./tests/broker_test.sh
 	./tests/bootstrap_test.sh
+	./tests/container_scripts_test.sh
 
 fmt:
 	gofmt -w ./cmd

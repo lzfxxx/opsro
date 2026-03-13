@@ -30,7 +30,11 @@ curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/bootstrap
   --host-address 10.0.1.12
 ```
 
-For the first MVP, K8s setup runs directly, while host setup is emitted as a helper script unless you explicitly run host install locally.
+For the current MVP, K8s setup runs directly. Host setup can now run in three modes:
+
+- emit a local helper script (default)
+- install on the current machine with `--install-host-local`
+- install on a remote machine with `--install-host-remote --remote-host ...`
 
 ### Kubernetes
 
@@ -50,7 +54,19 @@ Install the read-only broker on the target host:
 curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-host-broker.sh | sudo sh
 ```
 
-Then configure host inventory from `examples/config.json`.
+Or let `bootstrap.sh` push the installer over SSH from the management node:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/bootstrap.sh | sh -s -- \
+  --out-dir ./opsro-bootstrap \
+  --host-name web-01 \
+  --host-address 10.0.1.12 \
+  --install-host-remote \
+  --remote-host 10.0.1.12 \
+  --remote-ssh-user admin
+```
+
+Then configure host inventory from `examples/config.json`, or use the generated `opsro.json` in the bootstrap output directory.
 
 See `docs/quickstart.md` for step-by-step setup and advanced flags.
 

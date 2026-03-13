@@ -7,7 +7,7 @@ It keeps the logic simple:
 - calls `install-k8s-readonly.sh`
 - emits `opsro.json`
 - emits runnable `run-codex.sh` / `run-claude.sh`
-- optionally emits `host-install.sh` or runs the host installer locally
+- optionally emits `host-install.sh`, runs the host installer locally, or pushes it to a remote host over SSH
 
 ## Recommended
 
@@ -24,7 +24,7 @@ This creates an output directory such as:
 - `opsro-bootstrap/opsro.json`
 - `opsro-bootstrap/run-codex.sh`
 - `opsro-bootstrap/run-claude.sh`
-- `opsro-bootstrap/host-install.sh` (when host info is provided and host install is not local)
+- `opsro-bootstrap/host-install.sh` (when host info is provided and host install is neither local nor remote)
 
 ## Useful flags
 
@@ -35,6 +35,11 @@ This creates an output directory such as:
 - `--host-port 22`
 - `--host-user opsro`
 - `--install-host-local`
+- `--install-host-remote`
+- `--remote-host 10.0.1.12`
+- `--remote-ssh-user admin`
+- `--remote-ssh-port 22`
+- `--remote-use-sudo`
 - `--skip-reload`
 - `--plan`
 - `--dry-run`
@@ -45,6 +50,6 @@ Current MVP behavior:
 
 - K8s installer runs directly.
 - Host inventory is generated when host metadata is provided.
-- Host setup defaults to a generated helper script unless `--install-host-local` is used.
+- Host setup defaults to a generated helper script, but can also run locally or be pushed to a remote host over SSH.
 
-Future work: remote host bootstrap from the management node.
+Future work: stronger remote verification and system-level integration tests.

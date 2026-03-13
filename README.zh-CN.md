@@ -30,7 +30,11 @@ curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/bootstrap
   --host-address 10.0.1.12
 ```
 
-当前这个 MVP 版本里，K8s 会直接执行安装；Host 默认先生成一个 helper 脚本，除非你显式要求在本机直接安装。
+当前这个 MVP 版本里，K8s 会直接执行安装；Host 现在支持三种模式：
+
+- 默认生成一个本地 helper 脚本
+- 用 `--install-host-local` 在当前机器直接安装
+- 用 `--install-host-remote --remote-host ...` 从管理节点通过 SSH 远程安装
 
 ### Kubernetes
 
@@ -50,7 +54,19 @@ curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-k
 curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/install-host-broker.sh | sudo sh
 ```
 
-然后再按 `examples/config.json` 配置 host inventory。
+或者直接让 `bootstrap.sh` 从管理节点通过 SSH 推过去安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lzfxxx/opsro/main/scripts/bootstrap.sh | sh -s -- \
+  --out-dir ./opsro-bootstrap \
+  --host-name web-01 \
+  --host-address 10.0.1.12 \
+  --install-host-remote \
+  --remote-host 10.0.1.12 \
+  --remote-ssh-user admin
+```
+
+然后再按 `examples/config.json` 配置 host inventory，或者直接使用 bootstrap 输出目录里生成的 `opsro.json`。
 
 完整逐步说明和高级参数见 `docs/quickstart.md`。
 

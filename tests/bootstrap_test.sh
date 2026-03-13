@@ -9,6 +9,8 @@ FAKE_K8S="$TMP_DIR/fake-install-k8s.sh"
 FAKE_HOST="$TMP_DIR/fake-install-host.sh"
 OUT_DIR="$TMP_DIR/out"
 HOST_LOG="$TMP_DIR/host.log"
+SSH_LOG="$TMP_DIR/ssh.log"
+SSH_STDIN="$TMP_DIR/ssh.stdin"
 
 cat >"$FAKE_K8S" <<'EOF'
 #!/bin/sh
@@ -50,6 +52,15 @@ fi
 EOF
 chmod +x "$FAKE_HOST"
 
+FAKE_SSH="$TMP_DIR/fake-ssh.sh"
+cat >"$FAKE_SSH" <<EOF
+#!/bin/sh
+set -eu
+printf '%s\n' "\$*" >"$SSH_LOG"
+cat >"$SSH_STDIN"
+EOF
+chmod +x "$FAKE_SSH"
+
 fail() {
   printf '%s\n' "$*" >&2
   exit 1
@@ -87,9 +98,26 @@ OPSRO_INSTALL_K8S_SCRIPT="$FAKE_K8S" OPSRO_INSTALL_HOST_SCRIPT="$FAKE_HOST" \
 grep -q -- '--user opsro --inventory-name web-02 --address 10.0.2.22 --port 22 --skip-reload' "$HOST_LOG" || fail 'local host installer args should be forwarded'
 [ ! -f "$LOCAL_OUT/host-install.sh" ] || fail 'local host install should not emit helper script'
 
+REMOTE_OUT="$TMP_DIR/out-remote"
+OPSRO_INSTALL_K8S_SCRIPT="$FAKE_K8S" OPSRO_INSTALL_HOST_SCRIPT="$FAKE_HOST" OPSRO_BOOTSTRAP_SSH_BIN="$FAKE_SSH" \
+  "$BOOTSTRAP" --out-dir "$REMOTE_OUT" --provider claude --host-name web-03 --host-address 10.0.3.33 --install-host-remote --remote-host admin.example --remote-ssh-user root --remote-ssh-port 2222 --remote-use-sudo --skip-reload >/dev/null 2>&1
+[ -f "$SSH_LOG" ] || fail 'remote host install should invoke ssh'
+grep -q -- '-p 2222' "$SSH_LOG" || fail 'remote host install should pass ssh port'
+grep -q -- 'root@admin.example' "$SSH_LOG" || fail 'remote host install should target remote host'
+grep -q -- 'sudo sh -s --' "$SSH_LOG" || fail 'remote host install should use sudo when requested'
+grep -q -- '--inventory-name' "$SSH_LOG" || fail 'remote host install should forward installer args'
+grep -q -- 'printf' "$SSH_STDIN" || fail 'remote host install should pipe installer script over ssh'
+[ ! -f "$REMOTE_OUT/host-install.sh" ] || fail 'remote host install should not emit helper script'
+[ -f "$REMOTE_OUT/run-claude.sh" ] || fail 'remote bootstrap should still emit requested provider script'
+
 if OPSRO_INSTALL_K8S_SCRIPT="$FAKE_K8S" OPSRO_INSTALL_HOST_SCRIPT="$FAKE_HOST" \
   "$BOOTSTRAP" --out-dir "$TMP_DIR/bad" --host-address 10.0.1.12 >/dev/null 2>&1; then
   fail 'bootstrap should reject host-address without host-name'
+fi
+
+if OPSRO_INSTALL_K8S_SCRIPT="$FAKE_K8S" OPSRO_INSTALL_HOST_SCRIPT="$FAKE_HOST" \
+  "$BOOTSTRAP" --out-dir "$TMP_DIR/bad-remote" --host-name web-04 --host-address 10.0.4.44 --install-host-remote >/dev/null 2>&1; then
+  fail 'bootstrap should reject remote mode without remote host'
 fi
 
 printf 'bootstrap tests passed\n'
